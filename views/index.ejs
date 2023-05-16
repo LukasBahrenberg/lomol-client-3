@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="description" content="My description" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LOMOL</title>
+</head>
+
+<body>
+  <header>
+    <h1 style="text-align:center">⚡️ L2.auction ⚡️</h1>
+    <p></p>
+    <br />
+    <h3 style="text-align:center">Last Price:</h3>
+    <h2 id="price-ticker" style="text-align:center">0</h2>
+    <h3 style="text-align:center"> USD / Msats</h3>
+    <br />
+    <div class="container">
+      <p>Amount (Msats)</p>
+    </div>
+    <div class="container">
+      <input type="number" id="amount" name="amount" value="1000" step="1000">
+    </div>
+    <div class="container">
+      <p>Price (USD)</p>
+    </div>
+    <div class="container">
+      <input type="number" id="price" name="price" value="200" step="100">
+    </div>
+    <br />
+    <div class="container">
+      <a id="buy-button"><button>Buy</button></a>
+      &nbsp;
+      <a id="sell-button"><button>Sell</button></a>
+    </div>
+    <br />
+    <br />
+  </header>
+  <main>
+    <div class="container">
+      <b>Order book</b>
+    </div>
+    <br />
+    <table class="center">
+      <tbody>
+        <tr>
+          <th>BUY</th>
+          <th>SELL</th>
+        </tr>
+        <tr>
+          <td style="vertical-align:top">
+            <table id="buy-order-book">
+              <thead>
+                <tr>
+                  <th>Amount (Msats)</th>
+                  <th>Price (USD)</th>
+                </tr>
+              </thead>
+              <tbody id="buy-order-book-body"></tbody>
+            </table>
+          </td>
+          <td style="vertical-align:top">
+            <table id="sell-order-book">
+              <thead>
+                <tr>
+                  <th>Amount (Msats)</th>
+                  <th>Price (USD)</th>
+                </tr>
+              </thead>
+              <tbody id="sell-order-book-body"></tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+
+<script src="/functions.js"></script>
+
+<script>
+
+  // event listeners
+  document.getElementById('buy-button').addEventListener('click', async (event) => {
+    event.preventDefault();
+    postorder('BUY');
+  });
+
+  document.getElementById('sell-button').addEventListener('click', async (event) => {
+    event.preventDefault();
+    postorder('SEL');
+  });
+
+  window.setInterval(async ()=>{ await fillorderbooktables() }, 500);
+
+  window.setInterval(async ()=>{ await settickerprice() }, 500);
+  
+</script>
+
+<style>
+  .center {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  textarea {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+</style>
+
+</html>

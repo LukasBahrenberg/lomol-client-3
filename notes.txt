@@ -1,0 +1,10 @@
+steps to run client:
+
+clone repo
+sudo ufw allow 3030
+sudo apt install nodejs
+sudo apt install npm
+sudo npm install express
+sudo npm install cookie-parser
+
+modify .env file with credentials
