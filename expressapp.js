@@ -15,6 +15,8 @@ const MACAROON_PATH_CLIENT = process.env.MACAROON_PATH_CLIENT;
 var macaroonInt = fs.readFileSync(MACAROON_PATH_CLIENT);
 const MACAROON = Buffer.from(macaroonInt, 'utf8').toString('hex');
 
+console.log("MACAROON: ", MACAROON);
+
 const app = express();
 
 app.set("views", path.join(__dirname, "views"));
@@ -52,6 +54,22 @@ app.post("/addholdinvoice", async (req, res) => {
     form: JSON.stringify(req.body),
   }
   request.post(options, function(error, response, body) {
+    res.json(body);;
+  });
+});
+
+app.post("/lookupinvoice", async (req, res) => {
+  var payment_hash_buf = req.body.payment_hash;
+  var buffer = Buffer.from(payment_hash_buf, 'base64') 
+  payment_hash_buf = buffer.toString('base64url')
+  let options = {
+    url: `https://${CLIENT_LND_DOMAIN}/v2/invoices/lookup?payment_hash=${payment_hash_buf}=`,
+    rejectUnauthorized: false,
+    headers: {
+      'Grpc-Metadata-macaroon': MACAROON,
+    },
+  }
+  request.get(options, function(error, response, body) {
     res.json(body);;
   });
 });
@@ -107,22 +125,6 @@ app.get("/getserverpubkey", async (req, res) => {
   }
   request.get(options, function(error, response, body) {
     res.json(body);
-  });
-});
-
-app.post("/lookupinvoice", async (req, res) => {
-  var payment_hash_buf = req.body.payment_hash;
-  var buffer = Buffer.from(payment_hash_buf, 'base64') 
-  payment_hash_buf = buffer.toString('base64url')
-  let options = {
-    url: `https://${CLIENT_LND_DOMAIN}/v2/invoices/lookup?payment_hash=${payment_hash_buf}=`,
-    rejectUnauthorized: false,
-    headers: {
-      'Grpc-Metadata-macaroon': MACAROON,
-    },
-  }
-  request.get(options, function(error, response, body) {
-    res.json(body);;
   });
 });
 

@@ -78,9 +78,34 @@
   </main>
 </body>
 
+<script src="https://unpkg.com/webln@0.2.2/dist/webln.min.js"></script>
 <script src="/functions.js"></script>
 
 <script>
+
+  function enable() {
+    WebLN.requestProvider().then(function (webln) {
+      webln.getInfo().then(function (info) {
+        displayResonse(info);
+      });
+    })
+      .catch(function (e) {
+        displayResonse(e);
+        alert("Failed: " + e.message);
+        console.log('error enable:', e);
+      });
+  }
+
+  window.addEventListener('DOMContentLoaded', function (event) {
+    window.setTimeout(function () {
+
+      WebLN.requestProvider().then(webln => {
+        console.log('-- webln found');
+      })
+        .catch(function (e) { console.log('-- requesting webln failed', e) });
+
+    }, 300);
+  });
 
   // event listeners
   document.getElementById('buy-button').addEventListener('click', async (event) => {
