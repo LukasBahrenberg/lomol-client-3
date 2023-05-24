@@ -15,6 +15,8 @@ const MACAROON_PATH_CLIENT = process.env.MACAROON_PATH_CLIENT;
 var macaroonInt = fs.readFileSync(MACAROON_PATH_CLIENT);
 const MACAROON = Buffer.from(macaroonInt, 'utf8').toString('hex');
 
+console.log("This is update 2")
+
 console.log("MACAROON: ", MACAROON);
 
 const app = express();

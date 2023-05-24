@@ -31,6 +31,22 @@
     </div>
     <br />
     <div class="container">
+      <label class="toggle">
+        <input id="toggleswitch" type="checkbox">
+        <span class="roundbutton"></span>
+      </label>
+    </div>
+    <div class="container">
+      <div id="status" class="status">
+        <span id="statustext">Custom Backend</span>
+      </div>
+    </div>
+    <br />
+    <div class="container">
+      <a id="test-button"><button>TEST</button></a>
+    </div>
+    <br />
+    <div class="container">
       <a id="buy-button"><button>Buy</button></a>
       &nbsp;
       <a id="sell-button"><button>Sell</button></a>
@@ -81,49 +97,6 @@
 <script src="https://unpkg.com/webln@0.2.2/dist/webln.min.js"></script>
 <script src="/functions.js"></script>
 
-<script>
-
-  function enable() {
-    WebLN.requestProvider().then(function (webln) {
-      webln.getInfo().then(function (info) {
-        displayResonse(info);
-      });
-    })
-      .catch(function (e) {
-        displayResonse(e);
-        alert("Failed: " + e.message);
-        console.log('error enable:', e);
-      });
-  }
-
-  window.addEventListener('DOMContentLoaded', function (event) {
-    window.setTimeout(function () {
-
-      WebLN.requestProvider().then(webln => {
-        console.log('-- webln found');
-      })
-        .catch(function (e) { console.log('-- requesting webln failed', e) });
-
-    }, 300);
-  });
-
-  // event listeners
-  document.getElementById('buy-button').addEventListener('click', async (event) => {
-    event.preventDefault();
-    postorder('BUY');
-  });
-
-  document.getElementById('sell-button').addEventListener('click', async (event) => {
-    event.preventDefault();
-    postorder('SEL');
-  });
-
-  window.setInterval(async ()=>{ await fillorderbooktables() }, 500);
-
-  window.setInterval(async ()=>{ await settickerprice() }, 500);
-  
-</script>
-
 <style>
   .center {
     margin-left: auto;
@@ -140,6 +113,56 @@
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+
+  .status {
+
+  }
+
+  .toggle {
+      position: relative;
+      display: block;
+      width: 6rem;
+      height: 1.7rem;
+  }
+
+  .toggle input {
+      display: none;
+  }
+
+  .roundbutton {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      background-color: #606060;
+      display: block;
+      transition: all 0.3s;
+      border-radius: 1.7rem;
+      cursor: pointer;
+  }
+
+  .roundbutton:before {
+      position: absolute;
+      content: "";
+      height: 1.2rem;
+      width: 1.25rem;
+      border-radius: 100%;
+      display: block;
+      left: 0.25rem;
+      bottom: 0.25rem;
+      background-color: white;
+      transition: all 0.3s;
+  }
+
+  input:checked + .roundbutton {
+      background-color: #ffc248;
+  }
+
+  input:checked + .roundbutton:before  {
+      transform: translate(4rem, 0);
   }
 </style>
 

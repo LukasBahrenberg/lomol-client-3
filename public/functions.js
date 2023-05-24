@@ -1,74 +1,123 @@
 /////////////////////////////
-// Client LND node calls
+// LND custom backend (REST/gRPC) / webLN calls
 /////////////////////////////
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+async function getclientpubkey() {
+    
+    // webLN
+    if (webln_connection == true) {
+        let response = await webln.request('getinfo');
+        console.log(response);
+        return response.identity_pubkey;
+    } 
+    
+    // custom backend (REST/gRPC)
+    else {
+        let response = await fetch('/getinfo', { method: "POST" });
+        let data = await JSON.parse(await response.json());
+        console.log(data);
+        return data.identity_pubkey;
+    }
 }
 
-async function getclientpubkey() {
-    let response = await fetch('/getinfo', { method: "POST" });
-    let data = await JSON.parse(await response.json());
-    return data.identity_pubkey;
-}
 
 async function addholdinvoice(hash, value) {
-    let request = {
-        method: "POST",
-        body: JSON.stringify({
+    
+    // webLN
+    if (webln_connection == true) {
+        let response = await webln.request('addholdinvoice',
+        {
             hash: hash, 
             value: value
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    };
-    let response = await fetch('/addholdinvoice', request);
-    let data = JSON.parse(await response.json());
-    return data.payment_request;
+        });
+        console.log('addholdinvoice response: ' + response.payment_request);
+        return response.payment_request
+    } 
+    
+    // custom backend (REST/gRPC)
+    else {
+        let request = {
+            method: "POST",
+            body: JSON.stringify({
+                hash: hash, 
+                value: value
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        };
+        let response = await fetch('/addholdinvoice', request);
+        let data = JSON.parse(await response.json());
+        console.log('addholdinvoice response: ' + data.payment_request);
+        return data.payment_request;
+    }
 }
 
 async function lookupinvoice(payment_hash_in) {
-    let request = { 
-        method: "POST", 
-        body: JSON.stringify({
-            payment_hash: payment_hash_in
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    };
-    let response = await fetch('/lookupinvoice', request);
-    let data = JSON.parse(await response.json());
-    return data;
+    
+    // webLN
+    if (webln_connection == true) {
+        let payment_hash_hex = [...atob(payment_hash_in)].map(c=> c.charCodeAt(0).toString(16).padStart(2,0)).join``
+        console.log('payment_hash_in base64: ' + payment_hash_in);
+        console.log('payment_hash_hex: ' + payment_hash_hex);
+        let response = await webln.request('lookupinvoice',
+        {
+            r_hash_str: payment_hash_hex,
+        })
+        console.log('lookupinvoice response: ' + response);
+        return response;
+    } 
+    
+    // custom backend (REST/gRPC)
+    else {
+        let request = { 
+            method: "POST", 
+            body: JSON.stringify({
+                payment_hash: payment_hash_in
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        };
+        let response = await fetch('/lookupinvoice', request);
+        let data = JSON.parse(await response.json());
+        console.log('lookupinvoice response: ' + data);
+        return data;
+    }
 }
 
 async function sendpayment(server_pubkey, payment_hash, server_payment_request) {
-    let request = {
-        method: "POST",
-        body: JSON.stringify({
-            dest: server_pubkey, 
-            payment_hash: payment_hash,
-            payment_request: server_payment_request
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    };
-    let response = await fetch('/sendpayment', request);
-    let data = JSON.parse(await response.json());
-    return data;
+    
+    // webLN
+    if (webln_connection == true) {
+        let response = webln.sendPayment(server_payment_request);
+        console.log('sendpayment response: ' + response);
+        return response;
+    } 
+    
+    // custom backend (REST/gRPC)
+    else {
+        let request = {
+            method: "POST",
+            body: JSON.stringify({
+                dest: server_pubkey, 
+                payment_hash: payment_hash,
+                payment_request: server_payment_request
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        };
+        let response = await fetch('/sendpayment', request);
+        let data = JSON.parse(await response.json());
+        console.log('sendpayment response: ' + data);
+        return data;
+    }
 }
 
 /////////////////////////////
 // LOMOL server calls
 /////////////////////////////
-
-async function getorderbooks() {
-    const response = await fetch('/getorderbooks', { method: "GET" });
-    const data = JSON.parse(await response.json());
-    return data;
-}
 
 async function getpaymenthash() {
     const response = await fetch('/getpaymenthash', { method: "GET" });
@@ -99,33 +148,6 @@ async function settickerprice() {
     const data = await response.json();
     ticker_price = document.getElementById("price-ticker");
     ticker_price.innerHTML = data;
-}
-
-
-/////////////////////////////
-// Client functions
-/////////////////////////////
-
-async function createaddorderrequest(payment_hash, payment_request, client_pubkey, order_type, price) {
-    let order_request = {
-        method: "POST",
-        body: JSON.stringify({
-            payment_hash: payment_hash,
-            payment_request: payment_request,
-            raw_order: {
-                user_id: client_pubkey, 
-                order_id: payment_hash,
-                order_type: order_type,
-                order_action: 'ADD',
-                quantity: 1000,
-                price: parseInt(price),
-            }
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    };
-    return order_request;
 }
 
 async function fillorderbooktables() {
@@ -159,6 +181,11 @@ async function fillorderbooktables() {
     sell_table.replaceChild(new_sell_table_body, sell_table.childNodes[0])
 }
 
+/////////////////////////////
+// Client functions
+/////////////////////////////
+
+// post order function
 async function postorder(order_type) { 
 
     let price = document.getElementById('price').value;
@@ -168,24 +195,19 @@ async function postorder(order_type) {
 
     let iterations =  amount / 1000;
     for(var i = 0; i < iterations; i++){
-
-        // payment hash is the same for both client and server
+        
+        // order negotiation steps (payment hash is the same for both client and server)
         let payment_hash = await getpaymenthash(); 
-        console.log('payment_hash: ' + payment_hash);
-
-        let payment_request = await addholdinvoice(payment_hash, 1000);
-        let client_pubkey = await getclientpubkey();
-        
-        let order_request = await createaddorderrequest(payment_hash, payment_request, client_pubkey, order_type, price);
-        
+        let client_payment_request = await addholdinvoice(payment_hash, 1000);
+        let order_request = await createaddorderrequest(payment_hash, client_payment_request, client_pubkey, order_type, price);
+        console.log('order_request: ' + JSON.stringify(order_request));
         let server_payment_request = await negotiateorder(order_request);
+        
+        console.log('payment_hash: ' + payment_hash);
         console.log('server_payment_request: ' + server_payment_request);
-        
-        let server_pubkey = await getserverpubkey();
-        console.log('server destination pubkey: ' + server_pubkey);
-        
-        //check if server paid client payment request
-        for (let i = 0; i < 10; i++) {
+                
+        //check if server paid client payment request before placing order (i.e. paying server payment request)
+        for (let i = 0; i < 20; i++) {
             let invoice_tocheck = await lookupinvoice(payment_hash);
             if (invoice_tocheck.state == 'ACCEPTED') {
                 
@@ -200,68 +222,99 @@ async function postorder(order_type) {
 
             } else {
                 console.log('Server payment has not been received yet. Waiting and trying again...')
-                await sleep(10);
+                await sleep(50);
             }
         }
     }
 }
 
-// async function postsellorder() {
-//     const order_type = 'SEL'
-//     const iterations =  (document.getElementById('amount').value) / 1000;
-//     console.log(iterations)
-//     for(var i = 0; i < iterations; i++) {
-//         const price = document.getElementById('price').value;
-//         console.log(price);
-//         const payment_hash = await getpaymenthash(); 
-//         console.log(payment_hash);
-//         const payment_request = await addholdinvoice(payment_hash, 1000);
-//         console.log(payment_request);
-//         const client_pubkey = await getclientpubkey();
-//         console.log(client_pubkey);
-//         const request = {
-//             method: "POST",
-//             body: JSON.stringify({
-//                 payment_hash: payment_hash,
-//                 payment_request: payment_request,
-//                 raw_order: {
-//                     user_id: client_pubkey, 
-//                     order_id: payment_hash,
-//                     order_type: order_type,
-//                     order_action: 'ADD',
-//                     quantity: 1000,
-//                     price: parseInt(price),
-//                 }
-//             }),
-//             headers: {
-//                 "Content-Type": "application/json"
-//             }
-//         };
-//         const response = await fetch('/negotiateorder', request);
-//         const server_payment_request = await JSON.parse(await response.json());
-//         console.log(server_payment_request);
-//         const server_pubkey = await getserverpubkey();
-//         console.log('server destination pubkey: ' + server_pubkey);
-//         //check if server paid client payment request
-//         for (let i = 0; i < 10; i++) {
-//             var invoice_tocheck = await lookupinvoice(payment_hash);
-//             if (invoice_tocheck.state == 'ACCEPTED') {
-//                 // send payment to server
-//                 console.log('server_pubkey: ' + server_pubkey);
-//                 console.log('payment_hash: ' + payment_hash);
-//                 console.log('server_payment_request: ' + server_payment_request);
-//                 sendpayment(server_pubkey, payment_hash, server_payment_request);
-//                 console.log('Server payment has been received and own payment has been sent. Now placing order...');
-//                 // trigger order placement
-//                 var response2 = await fetch('/placeorder', request);
-//                 response2 = await response2.json();
-//                 console.log(response2);
-//                 break;
-//             } else {
-//                 console.log('Server payment has not been received yet. Waiting and trying again...')
-//                 await sleep(10);
-//             }
-//         }
-//     }
-// }
+/////////////////////////////
+// Event listeners 
+/////////////////////////////
 
+let [client_pubkey, server_pubkey] = [null, null];
+let webln_connection = false;
+
+let input = document.getElementById('toggleswitch');
+let webln_text = document.getElementById('status');
+
+input.addEventListener('change', async function(){
+    if(this.checked) {
+        webln_text.innerHTML = "webLN";
+        webln_connection = true;
+        await webln.enable();
+        client_pubkey = await getclientpubkey();
+    } else {
+        webln_text.innerHTML = "Custom Backend";
+        webln_connection = false;
+    }
+});
+
+window.addEventListener('DOMContentLoaded', async (event) => {
+    window.setTimeout(async function () { 
+        // get client and server pubkeys
+        client_pubkey = await getclientpubkey();
+        server_pubkey = await getserverpubkey();
+        console.log('client_pubkey: ' + client_pubkey);
+        console.log('server_pubkey: ' + server_pubkey);
+    }, 300);
+});
+
+document.getElementById('buy-button').addEventListener('click', async (event) => {
+    event.preventDefault();
+    
+    const start = Date.now();
+    await postorder('BUY');
+    const end = Date.now();
+    
+    console.log(`Execution time: ${end - start} ms`);
+});
+
+document.getElementById('sell-button').addEventListener('click', async (event) => {
+    event.preventDefault();
+    
+    const start = Date.now();
+    await postorder('SEL');
+    const end = Date.now();
+    
+    console.log(`Execution time: ${end - start} ms`);
+});
+
+document.getElementById('test-button').addEventListener('click', async (event) => {
+    event.preventDefault();
+    await getclientpubkey();
+});
+
+window.setInterval(async ()=>{ await fillorderbooktables() }, 500);
+
+window.setInterval(async ()=>{ await settickerprice() }, 500);
+
+/////////////////////////////
+// Helper functions
+/////////////////////////////
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function createaddorderrequest(payment_hash, client_payment_request, client_pubkey, order_type, price) {
+    let order_request = {
+        method: "POST",
+        body: JSON.stringify({
+            payment_hash: payment_hash,
+            payment_request: client_payment_request,
+            raw_order: {
+                user_id: client_pubkey, 
+                order_id: payment_hash,
+                order_type: order_type,
+                order_action: 'ADD',
+                quantity: 1000,
+                price: parseInt(price),
+            }
+        }),
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+    return order_request;
+}
