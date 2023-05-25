@@ -77,6 +77,9 @@ app.post("/lookupinvoice", async (req, res) => {
 });
 
 app.post("/sendpayment", async (req, res) => {
+  console.log('req.body.dest: ' + req.body.dest);
+  console.log('req.body.payment_hash: ' + req.body.payment_hash);
+  console.log('req.body.payment_request: ' + req.body.payment_request);
   let options = {
     url: `https://${CLIENT_LND_DOMAIN}/v1/channels/transactions`,
     rejectUnauthorized: false,
@@ -87,6 +90,26 @@ app.post("/sendpayment", async (req, res) => {
   }
   request.post(options, function(error, response, body) {
     res.json(body);;
+  });
+});
+
+app.post("/settleinvoice", async (req, res) => {
+  console.log('req.body.preimage: ' + req.body.preimage);
+  // var preimage_buf = req.body.preimage;
+  // var buffer = Buffer.from(preimage_buf, 'base64') 
+  // preimage_buf = buffer.toString('base64url')
+  // req.body.preimage = preimage_buf + '='
+  // console.log('preimage as url in server side function: ' + req.body.preimage)
+  let options = {
+    url: `https://${CLIENT_LND_DOMAIN}/v2/invoices/settle`,
+    rejectUnauthorized: false,
+    headers: {
+      'Grpc-Metadata-macaroon': MACAROON,
+    },
+    form: JSON.stringify(req.body),
+  }
+  request.post(options, function(error, response, body) {
+    res.json(body);
   });
 });
 
@@ -126,6 +149,17 @@ app.get("/getserverpubkey", async (req, res) => {
     url: `http://${LOMOL_HOST}/getserverpubkey`,
   }
   request.get(options, function(error, response, body) {
+    res.json(body);
+  });
+});
+
+app.post("/getrevealedpreimage", async (req, res) => {
+  console.log('request payment hash getrevealedpreimage: ' + req.body.payment_hash)
+  let options = {
+    url: `http://${LOMOL_HOST}/getrevealedpreimage`,
+    form: JSON.stringify(req.body),
+  }
+  request.post(options, function(error, response, body) {
     res.json(body);
   });
 });

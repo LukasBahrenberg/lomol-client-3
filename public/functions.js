@@ -64,7 +64,7 @@ async function lookupinvoice(payment_hash_in) {
         {
             r_hash_str: payment_hash_hex,
         })
-        console.log('lookupinvoice response: ' + response);
+        console.log('lookupinvoice status: ' + response.state);
         return response;
     } 
     
@@ -81,7 +81,50 @@ async function lookupinvoice(payment_hash_in) {
         };
         let response = await fetch('/lookupinvoice', request);
         let data = JSON.parse(await response.json());
-        console.log('lookupinvoice response: ' + data);
+        console.log('lookupinvoice status: ' + data.state);
+        return data;
+    }
+}
+
+function base64ToArrayBuffer(base64) {
+    var binaryString = atob(base64);
+    var bytes = new Uint8Array(binaryString.length);
+    for (var i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+async function settleinvoice(preimage) {
+    
+    if (webln_connection == true) {
+        // let preimage_conv = Uint8Array.from(atob(JSON.parse(preimage)), c => c.charCodeAt(0))
+        // console.log('Uint8Array.from(atob(JSON.parse(preimage)), c => c.charCodeAt(0))' + preimage_conv);
+        // console.log('JSON.stringify(Uint8Array.from(atob(JSON.parse(preimage)), c => c.charCodeAt(0)))' + JSON.stringify(preimage_conv));
+        // preimage_conv = base64ToArrayBuffer(JSON.parse(preimage))
+        // console.log('preimage_conv func: ' + preimage_conv[0]);
+        let response = await webln.request('settleinvoice',
+        {
+            preimage: JSON.parse(preimage)
+        })
+        console.log('settle invoice response: ' + response);
+        return response;
+    } 
+    
+    // custom backend (REST/gRPC)
+    else {
+        let request = { 
+            method: "POST", 
+            body: JSON.stringify({
+                preimage: JSON.parse(preimage)
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        };
+        let response = await fetch('/settleinvoice', request);
+        let data = JSON.parse(await response.json());
+        console.log('settle invoice response: ' + JSON.stringify(data));
         return data;
     }
 }
@@ -91,7 +134,7 @@ async function sendpayment(server_pubkey, payment_hash, server_payment_request) 
     // webLN
     if (webln_connection == true) {
         let response = webln.sendPayment(server_payment_request);
-        console.log('sendpayment response: ' + response);
+        console.log('sendpayment response: ' + JSON.stringify(response));
         return response;
     } 
     
@@ -128,6 +171,22 @@ async function getpaymenthash() {
 async function getserverpubkey() {
     const response = await fetch('/getserverpubkey', { method: "GET" });
     const data = JSON.parse(await response.json());
+    return data;
+}
+
+async function getrevealedpreimage(payment_hash) {
+    let request = {
+        method: "POST",
+        body: JSON.stringify({
+            payment_hash: payment_hash
+        }),
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+    const response = await fetch('/getrevealedpreimage', request);
+    const data = await response.json();
+    console.log(data);
     return data;
 }
 
@@ -184,6 +243,13 @@ async function fillorderbooktables() {
 /////////////////////////////
 // Client functions
 /////////////////////////////
+
+async function settle(payment_hash) {
+    let preimage = await getrevealedpreimage(payment_hash);
+    console.log('preimage: ' + preimage);
+    let response = await settleinvoice(preimage);
+    return response;
+}
 
 // post order function
 async function postorder(order_type) { 
@@ -282,7 +348,11 @@ document.getElementById('sell-button').addEventListener('click', async (event) =
 
 document.getElementById('test-button').addEventListener('click', async (event) => {
     event.preventDefault();
-    await getclientpubkey();
+    payment_hash = document.getElementById("payment_hash").value;
+    console.log('payment_hash: ' + payment_hash);
+    let settle_reponse = await settle(payment_hash);
+    console.log(settle_reponse);
+    await lookupinvoice(payment_hash);
 });
 
 window.setInterval(async ()=>{ await fillorderbooktables() }, 500);
