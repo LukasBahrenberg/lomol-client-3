@@ -7,7 +7,8 @@ async function getclientpubkey() {
     // webLN
     if (webln_connection == true) {
         let response = await webln.request('getinfo');
-        console.log(response);
+        let methods = await webln.getInfo();
+        console.log(methods);
         return response.identity_pubkey;
     } 
     
@@ -299,7 +300,6 @@ async function postorder(order_type) {
 /////////////////////////////
 
 let [client_pubkey, server_pubkey] = [null, null];
-let webln_connection = false;
 
 let input = document.getElementById('toggleswitch');
 let webln_text = document.getElementById('status');
@@ -318,6 +318,9 @@ input.addEventListener('change', async function(){
 
 window.addEventListener('DOMContentLoaded', async (event) => {
     window.setTimeout(async function () { 
+        webln_connection = true;
+        await webln.enable();
+        
         // get client and server pubkeys
         client_pubkey = await getclientpubkey();
         server_pubkey = await getserverpubkey();
@@ -328,12 +331,13 @@ window.addEventListener('DOMContentLoaded', async (event) => {
 
 document.getElementById('buy-button').addEventListener('click', async (event) => {
     event.preventDefault();
-    
+
     const start = Date.now();
     await postorder('BUY');
     const end = Date.now();
-    
     console.log(`Execution time: ${end - start} ms`);
+
+    location.replace(location.href);
 });
 
 document.getElementById('sell-button').addEventListener('click', async (event) => {
@@ -344,6 +348,7 @@ document.getElementById('sell-button').addEventListener('click', async (event) =
     const end = Date.now();
     
     console.log(`Execution time: ${end - start} ms`);
+    location.replace(location.href);
 });
 
 document.getElementById('test-button').addEventListener('click', async (event) => {
