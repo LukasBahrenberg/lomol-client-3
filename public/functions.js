@@ -303,6 +303,7 @@ let [client_pubkey, server_pubkey] = [null, null];
 
 let input = document.getElementById('toggleswitch');
 let webln_text = document.getElementById('status');
+let webln_connection = false;
 
 input.addEventListener('change', async function(){
     if(this.checked) {
@@ -334,8 +335,6 @@ document.getElementById('buy-button').addEventListener('click', async (event) =>
     await postorder('BUY');
     const end = Date.now();
     console.log(`Execution time: ${end - start} ms`);
-
-    location.replace(location.href);
 });
 
 document.getElementById('sell-button').addEventListener('click', async (event) => {
@@ -346,7 +345,6 @@ document.getElementById('sell-button').addEventListener('click', async (event) =
     const end = Date.now();
     
     console.log(`Execution time: ${end - start} ms`);
-    location.replace(location.href);
 });
 
 document.getElementById('test-button').addEventListener('click', async (event) => {
