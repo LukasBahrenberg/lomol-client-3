@@ -318,9 +318,7 @@ input.addEventListener('change', async function(){
 
 window.addEventListener('DOMContentLoaded', async (event) => {
     window.setTimeout(async function () { 
-        webln_connection = true;
-        await webln.enable();
-        
+      
         // get client and server pubkeys
         client_pubkey = await getclientpubkey();
         server_pubkey = await getserverpubkey();
